@@ -234,8 +234,11 @@ export default function Products() {
               const isTracked = trackedProductIds.has(product.id);
               
               return (
-                <Card key={product.id} className="overflow-hidden hover-scale cursor-pointer" onClick={() => navigate(`/products/${product.id}`)}>
-                  <div className="aspect-square bg-muted relative">
+                <Card key={product.id} className="overflow-hidden hover-scale">
+                  <div 
+                    className="aspect-square bg-muted relative cursor-pointer"
+                    onClick={() => navigate(`/products/${product.id}`)}
+                  >
                     <img
                       src={product.image_url}
                       alt={product.name}
@@ -248,23 +251,27 @@ export default function Products() {
                     )}
                   </div>
                   <CardContent className="p-4">
-                    <div className="mb-2">
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        {product.category}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-2xl font-bold text-primary">
-                          ₹{product.current_price.toLocaleString('en-IN')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{product.currency}</p>
+                    <div 
+                      className="cursor-pointer mb-3"
+                      onClick={() => navigate(`/products/${product.id}`)}
+                    >
+                      <div className="mb-2">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          {product.category}
+                        </span>
                       </div>
-                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                      <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {product.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-2xl font-bold text-primary">
+                            ₹{product.current_price.toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                      </div>
                     </div>
                     
                     {!isTracked ? (

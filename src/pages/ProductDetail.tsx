@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, TrendingDown, TrendingUp, Plus, Check, ExternalLink } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, TrendingUp, ShoppingCart, Check, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Product {
   id: string;
@@ -24,33 +24,33 @@ interface Product {
 }
 
 interface PriceHistory {
-  price: number;
   recorded_at: string;
+  price: number;
 }
 
 export default function ProductDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [isTracked, setIsTracked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [targetPrice, setTargetPrice] = useState(0);
+  const [targetPrice, setTargetPrice] = useState<number>(0);
   const [notifyOnDrop, setNotifyOnDrop] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
-      fetchProductDetails();
+      fetchProductData();
     }
   }, [id, user]);
 
-  const fetchProductDetails = async () => {
+  const fetchProductData = async () => {
     try {
-      // Fetch product
+      // Fetch product details
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select('*')
@@ -63,13 +63,12 @@ export default function ProductDetail() {
       // Fetch price history
       const { data: historyData, error: historyError } = await supabase
         .from('price_history')
-        .select('price, recorded_at')
+        .select('recorded_at, price')
         .eq('product_id', id)
         .order('recorded_at', { ascending: true });
 
-      if (!historyError && historyData) {
-        setPriceHistory(historyData);
-      }
+      if (historyError) throw historyError;
+      setPriceHistory(historyData || []);
 
       // Fetch similar products (same category, exclude current)
       const { data: similarData, error: similarError } = await supabase
@@ -79,11 +78,10 @@ export default function ProductDetail() {
         .neq('id', id)
         .limit(4);
 
-      if (!similarError && similarData) {
-        setSimilarProducts(similarData);
-      }
+      if (similarError) throw similarError;
+      setSimilarProducts(similarData || []);
 
-      // Check if tracked
+      // Check if product is tracked
       if (user) {
         const { data: trackedData } = await supabase
           .from('tracked_products')
@@ -134,6 +132,16 @@ export default function ProductDetail() {
         title: 'Success',
         description: 'Product added to your tracking list',
       });
+
+      if (product) {
+        await supabase.from('user_preferences').upsert({
+          user_id: user.id,
+          category: product.category,
+          interest_score: 1,
+        }, {
+          onConflict: 'user_id,category'
+        });
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -167,26 +175,25 @@ export default function ProductDetail() {
     }
   };
 
-  const calculatePriceChange = () => {
-    if (priceHistory.length < 2) return null;
-    const oldPrice = priceHistory[0].price;
-    const currentPrice = product?.current_price || 0;
-    const change = ((currentPrice - oldPrice) / oldPrice) * 100;
-    return change;
-  };
-
-  const priceChange = calculatePriceChange();
-  const chartData = priceHistory.map(item => ({
-    date: new Date(item.recorded_at).toLocaleDateString(),
+  const chartData = priceHistory.map((item) => ({
+    date: new Date(item.recorded_at).toLocaleDateString('en-IN'),
     price: item.price,
   }));
+
+  const lowestPrice = priceHistory.length > 0 
+    ? Math.min(...priceHistory.map(h => h.price))
+    : product?.current_price || 0;
+
+  const highestPrice = priceHistory.length > 0
+    ? Math.max(...priceHistory.map(h => h.price))
+    : product?.current_price || 0;
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading product...</p>
+          <p className="text-muted-foreground">Loading product details...</p>
         </div>
       </div>
     );
@@ -219,46 +226,46 @@ export default function ProductDetail() {
         </Button>
 
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
-          {/* Product Image and Basic Info */}
-          <div>
-            <div className="aspect-square bg-muted rounded-lg overflow-hidden mb-6">
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="object-cover w-full h-full"
-              />
-            </div>
+          {/* Product Image */}
+          <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="object-cover w-full h-full"
+            />
           </div>
 
           {/* Product Details */}
-          <div>
-            <div className="mb-4">
+          <div className="flex flex-col">
+            <div className="mb-2">
               <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">
                 {product.category}
               </span>
             </div>
             <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
-            <p className="text-lg text-muted-foreground mb-6">
-              {product.description}
-            </p>
+            <p className="text-lg text-muted-foreground mb-6">{product.description}</p>
 
-            <div className="flex items-baseline gap-4 mb-6">
-              <div className="text-5xl font-bold text-primary">
-                ₹{product.current_price.toLocaleString('en-IN')}
+            <div className="mb-6">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-5xl font-bold text-primary">
+                  ₹{product.current_price.toLocaleString('en-IN')}
+                </span>
               </div>
-              {priceChange !== null && (
-                <div className={`flex items-center gap-1 text-sm ${priceChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {priceChange < 0 ? (
-                    <TrendingDown className="h-4 w-4" />
-                  ) : (
-                    <TrendingUp className="h-4 w-4" />
-                  )}
-                  <span>{Math.abs(priceChange).toFixed(1)}% since 30 days ago</span>
+              {priceHistory.length > 0 && (
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <div>
+                    <span className="font-semibold">Lowest: </span>
+                    ₹{lowestPrice.toLocaleString('en-IN')}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Highest: </span>
+                    ₹{highestPrice.toLocaleString('en-IN')}
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 mb-8">
               {!isTracked ? (
                 <Dialog open={dialogOpen} onOpenChange={(open) => {
                   setDialogOpen(open);
@@ -291,7 +298,7 @@ export default function ProductDetail() {
                           id="targetPrice"
                           type="number"
                           step="0.01"
-                          value={targetPrice}
+                          value={targetPrice || ''}
                           onChange={(e) => setTargetPrice(parseFloat(e.target.value))}
                         />
                       </div>
@@ -313,8 +320,8 @@ export default function ProductDetail() {
                 </Dialog>
               ) : (
                 <Button
-                  size="lg"
                   variant="outline"
+                  size="lg"
                   className="flex-1"
                   onClick={untrackProduct}
                 >
@@ -323,37 +330,76 @@ export default function ProductDetail() {
                 </Button>
               )}
               <Button
+                variant="secondary"
                 size="lg"
-                variant="outline"
                 onClick={() => window.open(product.source_url, '_blank')}
               >
-                <ExternalLink className="h-5 w-5 mr-2" />
-                View on Store
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Buy Now
               </Button>
             </div>
+
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-2">Product Details</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Category:</span>
+                    <span className="font-medium">{product.category}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Currency:</span>
+                    <span className="font-medium">{product.currency}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Source:</span>
+                    <a
+                      href={product.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Visit Store
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         {/* Price History Chart */}
-        {chartData.length > 0 && (
+        {priceHistory.length > 0 && (
           <Card className="mb-12">
-            <CardHeader>
-              <CardTitle>Price History (Last 30 Days)</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 mb-6">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h2 className="text-2xl font-bold">Price History</h2>
+              </div>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                  />
                   <Tooltip
-                    formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Price']}
+                    formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Price']}
+                    labelStyle={{ color: '#000' }}
                   />
                   <Line
                     type="monotone"
                     dataKey="price"
                     stroke="hsl(var(--primary))"
                     strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -364,25 +410,25 @@ export default function ProductDetail() {
         {/* Similar Products */}
         {similarProducts.length > 0 && (
           <div>
-            <h2 className="text-3xl font-bold mb-6">Similar Products in {product.category}</h2>
+            <h2 className="text-2xl font-bold mb-6">Similar Products You Might Like</h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {similarProducts.map((similarProduct) => (
+              {similarProducts.map((similar) => (
                 <Card
-                  key={similarProduct.id}
+                  key={similar.id}
                   className="overflow-hidden hover-scale cursor-pointer"
-                  onClick={() => navigate(`/products/${similarProduct.id}`)}
+                  onClick={() => navigate(`/products/${similar.id}`)}
                 >
                   <div className="aspect-square bg-muted">
                     <img
-                      src={similarProduct.image_url}
-                      alt={similarProduct.name}
+                      src={similar.image_url}
+                      alt={similar.name}
                       className="object-cover w-full h-full"
                     />
                   </div>
                   <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{similarProduct.name}</h3>
+                    <h3 className="font-semibold mb-2 line-clamp-2">{similar.name}</h3>
                     <p className="text-2xl font-bold text-primary">
-                      ₹{similarProduct.current_price.toLocaleString('en-IN')}
+                      ₹{similar.current_price.toLocaleString('en-IN')}
                     </p>
                   </CardContent>
                 </Card>
