@@ -234,7 +234,7 @@ export default function Products() {
               const isTracked = trackedProductIds.has(product.id);
               
               return (
-                <Card key={product.id} className="overflow-hidden hover-scale">
+                <Card key={product.id} className="overflow-hidden hover-scale cursor-pointer" onClick={() => navigate(`/products/${product.id}`)}>
                   <div className="aspect-square bg-muted relative">
                     <img
                       src={product.image_url}
@@ -260,7 +260,7 @@ export default function Products() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-2xl font-bold text-primary">
-                          ${product.current_price}
+                          ₹{product.current_price.toLocaleString('en-IN')}
                         </p>
                         <p className="text-xs text-muted-foreground">{product.currency}</p>
                       </div>
@@ -291,10 +291,10 @@ export default function Products() {
                           <div className="space-y-4">
                             <div>
                               <Label>Current Price</Label>
-                              <p className="text-2xl font-bold text-primary">${product.current_price}</p>
+                              <p className="text-2xl font-bold text-primary">₹{product.current_price.toLocaleString('en-IN')}</p>
                             </div>
                             <div>
-                              <Label htmlFor={`targetPrice-${product.id}`}>Target Price ($)</Label>
+                              <Label htmlFor={`targetPrice-${product.id}`}>Target Price (₹)</Label>
                               <Input
                                 id={`targetPrice-${product.id}`}
                                 type="number"

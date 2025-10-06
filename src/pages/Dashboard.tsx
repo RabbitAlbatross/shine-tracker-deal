@@ -172,10 +172,10 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-2xl font-bold text-primary">
-                            ${item.products.current_price}
+                            ₹{item.products.current_price.toLocaleString('en-IN')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Target: ${item.target_price}
+                            Target: ₹{item.target_price.toLocaleString('en-IN')}
                           </p>
                         </div>
                         {item.notify_on_drop && (
