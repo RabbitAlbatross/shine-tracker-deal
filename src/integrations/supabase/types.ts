@@ -43,6 +43,76 @@ export type Database = {
           },
         ]
       }
+      product_analysis: {
+        Row: {
+          analysis_summary: string | null
+          created_at: string | null
+          id: string
+          product_id: string
+          recommendation: string
+          sentiment_score: number
+        }
+        Insert: {
+          analysis_summary?: string | null
+          created_at?: string | null
+          id?: string
+          product_id: string
+          recommendation: string
+          sentiment_score: number
+        }
+        Update: {
+          analysis_summary?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          recommendation?: string
+          sentiment_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_analysis_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_stores: {
+        Row: {
+          id: string
+          last_updated: string | null
+          price: number
+          product_id: string
+          store_name: string
+          store_url: string
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          price: number
+          product_id: string
+          store_name: string
+          store_url: string
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          price?: number
+          product_id?: string
+          store_name?: string
+          store_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stores_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -54,6 +124,7 @@ export type Database = {
           image_url: string | null
           name: string
           source_url: string | null
+          store_name: string | null
           updated_at: string | null
         }
         Insert: {
@@ -66,6 +137,7 @@ export type Database = {
           image_url?: string | null
           name: string
           source_url?: string | null
+          store_name?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -78,6 +150,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           source_url?: string | null
+          store_name?: string | null
           updated_at?: string | null
         }
         Relationships: []

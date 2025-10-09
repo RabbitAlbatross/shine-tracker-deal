@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, TrendingUp, ShoppingCart, Check, Plus } from 'lucide-react';
+import { ArrowLeft, TrendingUp, ShoppingCart, Check, Plus, Store, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Product {
   id: string;
@@ -28,6 +30,19 @@ interface PriceHistory {
   price: number;
 }
 
+interface ProductStore {
+  id: string;
+  store_name: string;
+  price: number;
+  store_url: string;
+}
+
+interface ProductAnalysis {
+  sentiment_score: number;
+  recommendation: string;
+  analysis_summary: string;
+}
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -36,8 +51,11 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [productStores, setProductStores] = useState<ProductStore[]>([]);
+  const [analysis, setAnalysis] = useState<ProductAnalysis | null>(null);
   const [isTracked, setIsTracked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [targetPrice, setTargetPrice] = useState<number>(0);
   const [notifyOnDrop, setNotifyOnDrop] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,6 +98,31 @@ export default function ProductDetail() {
 
       if (similarError) throw similarError;
       setSimilarProducts(similarData || []);
+
+      // Fetch product stores (multi-store prices)
+      const { data: storesData, error: storesError } = await supabase
+        .from('product_stores')
+        .select('*')
+        .eq('product_id', id)
+        .order('price', { ascending: true });
+
+      if (storesError) throw storesError;
+      setProductStores(storesData || []);
+
+      // Fetch existing analysis
+      const { data: analysisData } = await supabase
+        .from('product_analysis')
+        .select('*')
+        .eq('product_id', id)
+        .single();
+
+      if (analysisData) {
+        setAnalysis({
+          sentiment_score: Number(analysisData.sentiment_score),
+          recommendation: analysisData.recommendation,
+          analysis_summary: analysisData.analysis_summary || '',
+        });
+      }
 
       // Check if product is tracked
       if (user) {
@@ -175,6 +218,55 @@ export default function ProductDetail() {
     }
   };
 
+  const analyzeProduct = async () => {
+    if (!product || loadingAnalysis) return;
+    
+    setLoadingAnalysis(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-product', {
+        body: {
+          productName: product.name,
+          description: product.description,
+          currentPrice: product.current_price,
+          lowestPrice,
+          highestPrice,
+          priceHistory: chartData
+        }
+      });
+
+      if (error) throw error;
+
+      const analysisResult = {
+        sentiment_score: data.sentimentScore,
+        recommendation: data.recommendation,
+        analysis_summary: data.summary
+      };
+
+      setAnalysis(analysisResult);
+
+      // Save to database
+      await supabase.from('product_analysis').upsert({
+        product_id: id,
+        sentiment_score: data.sentimentScore,
+        recommendation: data.recommendation,
+        analysis_summary: data.summary
+      });
+
+      toast({
+        title: 'Analysis Complete',
+        description: 'AI has analyzed this product for you',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to analyze product',
+      });
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
+
   const chartData = priceHistory.map((item) => ({
     date: new Date(item.recorded_at).toLocaleDateString('en-IN'),
     price: item.price,
@@ -265,6 +357,46 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* AI Analysis Section */}
+            {analysis && (
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      {analysis.sentiment_score >= 0.7 ? (
+                        <ThumbsUp className="h-8 w-8 text-green-500" />
+                      ) : analysis.sentiment_score >= 0.4 ? (
+                        <AlertCircle className="h-8 w-8 text-yellow-500" />
+                      ) : (
+                        <ThumbsDown className="h-8 w-8 text-red-500" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">AI Analysis</h3>
+                        <Badge variant={analysis.sentiment_score >= 0.7 ? 'default' : analysis.sentiment_score >= 0.4 ? 'secondary' : 'destructive'}>
+                          Score: {(analysis.sentiment_score * 100).toFixed(0)}%
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-medium mb-2">{analysis.analysis_summary}</p>
+                      <p className="text-sm text-muted-foreground">{analysis.recommendation}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!analysis && (
+              <Button 
+                onClick={analyzeProduct} 
+                disabled={loadingAnalysis}
+                variant="outline"
+                className="w-full mb-6"
+              >
+                {loadingAnalysis ? 'Analyzing...' : 'Get AI Product Analysis'}
+              </Button>
+            )}
+
             <div className="flex gap-4 mb-8">
               {!isTracked ? (
                 <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -329,15 +461,44 @@ export default function ProductDetail() {
                   Tracking
                 </Button>
               )}
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => window.open(product.source_url, '_blank')}
-              >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Buy Now
-              </Button>
             </div>
+
+            {/* Store Price Comparison */}
+            {productStores.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Compare Prices Across Stores
+                  </h3>
+                  <div className="space-y-3">
+                    {productStores.map((store) => (
+                      <div key={store.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div>
+                          <p className="font-medium">{store.store_name}</p>
+                          <p className="text-2xl font-bold text-primary">
+                            ₹{store.price.toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => navigate('/checkout', {
+                            state: {
+                              productName: product.name,
+                              productPrice: store.price,
+                              productImage: product.image_url,
+                              storeName: store.store_name,
+                            }
+                          })}
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Buy Now
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardContent className="pt-6">
