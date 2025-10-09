@@ -359,27 +359,64 @@ export default function ProductDetail() {
 
             {/* AI Analysis Section */}
             {analysis && (
-              <Card className="mb-6">
+              <Card className="mb-6 border-2 bg-gradient-to-br from-primary/5 to-background">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      {analysis.sentiment_score >= 0.7 ? (
-                        <ThumbsUp className="h-8 w-8 text-green-500" />
-                      ) : analysis.sentiment_score >= 0.4 ? (
-                        <AlertCircle className="h-8 w-8 text-yellow-500" />
-                      ) : (
-                        <ThumbsDown className="h-8 w-8 text-red-500" />
-                      )}
+                      <div className={`p-3 rounded-full ${
+                        analysis.sentiment_score >= 0.7 ? 'bg-green-100 dark:bg-green-900/30' : 
+                        analysis.sentiment_score >= 0.4 ? 'bg-yellow-100 dark:bg-yellow-900/30' : 
+                        'bg-red-100 dark:bg-red-900/30'
+                      }`}>
+                        {analysis.sentiment_score >= 0.7 ? (
+                          <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        ) : analysis.sentiment_score >= 0.4 ? (
+                          <AlertCircle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                        ) : (
+                          <ThumbsDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        )}
+                      </div>
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">AI Analysis</h3>
-                        <Badge variant={analysis.sentiment_score >= 0.7 ? 'default' : analysis.sentiment_score >= 0.4 ? 'secondary' : 'destructive'}>
-                          Score: {(analysis.sentiment_score * 100).toFixed(0)}%
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-lg font-bold">AI Product Analysis</h3>
+                        <Badge 
+                          className="text-base px-3 py-1"
+                          variant={
+                            analysis.sentiment_score >= 0.7 ? 'default' : 
+                            analysis.sentiment_score >= 0.4 ? 'secondary' : 
+                            'destructive'
+                          }
+                        >
+                          {(analysis.sentiment_score * 100).toFixed(0)}% Worth Buying
                         </Badge>
                       </div>
-                      <p className="text-sm font-medium mb-2">{analysis.analysis_summary}</p>
-                      <p className="text-sm text-muted-foreground">{analysis.recommendation}</p>
+                      
+                      {/* Progress Bar */}
+                      <div className="mb-4">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${
+                              analysis.sentiment_score >= 0.7 ? 'bg-green-500' : 
+                              analysis.sentiment_score >= 0.4 ? 'bg-yellow-500' : 
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${analysis.sentiment_score * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-background/50 rounded-lg p-4 mb-3">
+                        <p className="text-sm font-semibold text-primary mb-1">Summary</p>
+                        <p className="text-base">{analysis.analysis_summary}</p>
+                      </div>
+                      
+                      <div className="bg-background/50 rounded-lg p-4">
+                        <p className="text-sm font-semibold text-primary mb-1">Detailed Recommendation</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {analysis.recommendation}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -390,10 +427,20 @@ export default function ProductDetail() {
               <Button 
                 onClick={analyzeProduct} 
                 disabled={loadingAnalysis}
-                variant="outline"
-                className="w-full mb-6"
+                size="lg"
+                className="w-full mb-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
-                {loadingAnalysis ? 'Analyzing...' : 'Get AI Product Analysis'}
+                {loadingAnalysis ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Analyzing with AI...
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    Get AI Analysis & Buying Recommendation
+                  </>
+                )}
               </Button>
             )}
 

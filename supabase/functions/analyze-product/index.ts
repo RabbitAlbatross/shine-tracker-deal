@@ -73,16 +73,22 @@ Format your response as JSON with keys: sentimentScore, recommendation, summary`
     const data = await response.json();
     const content = data.choices[0].message.content;
     
-    // Parse the AI response
+    console.log('AI Response:', content);
+    
+    // Parse the AI response - handle JSON wrapped in markdown code blocks
     let analysis;
     try {
-      analysis = JSON.parse(content);
-    } catch {
+      // Try to extract JSON from markdown code blocks
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : content;
+      analysis = JSON.parse(jsonStr.trim());
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
       // Fallback if AI doesn't return valid JSON
       analysis = {
         sentimentScore: 0.5,
         recommendation: content,
-        summary: 'AI analysis available'
+        summary: 'Unable to parse AI analysis'
       };
     }
 
