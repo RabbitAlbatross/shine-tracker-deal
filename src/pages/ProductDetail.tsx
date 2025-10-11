@@ -445,22 +445,21 @@ export default function ProductDetail() {
             )}
 
             <div className="flex gap-4 mb-6">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="flex-1"
                 onClick={() => navigate('/checkout', {
                   state: {
                     productName: product.name,
                     productPrice: product.current_price,
                     productImage: product.image_url,
-                    storeName: 'Official Store',
+                    storeName: 'Our Store',
                   }
                 })}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Buy Now
               </Button>
-              
               {!isTracked ? (
                 <Dialog open={dialogOpen} onOpenChange={(open) => {
                   setDialogOpen(open);
@@ -472,7 +471,7 @@ export default function ProductDetail() {
                   <DialogTrigger asChild>
                     <Button size="lg" variant="outline" className="flex-1">
                       <Plus className="h-5 w-5 mr-2" />
-                      Track Price
+                      Track This Product
                     </Button>
                   </DialogTrigger>
                   <DialogContent>

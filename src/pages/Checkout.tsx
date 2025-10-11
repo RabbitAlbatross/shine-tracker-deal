@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, CreditCard, Package, ShoppingCart, Smartphone, Building2, Wallet } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CheckoutState {
   productName: string;
@@ -32,8 +32,7 @@ export default function Checkout() {
     cardExpiry: '',
     cardCvv: '',
     upiId: '',
-    bankName: '',
-    accountNumber: '',
+    netBankingBank: '',
   });
   
   const state = location.state as CheckoutState;
@@ -179,7 +178,7 @@ export default function Checkout() {
                 </CardContent>
               </Card>
 
-              {/* Payment Method Selection */}
+              {/* Payment Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -188,159 +187,111 @@ export default function Checkout() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg cursor-pointer hover:bg-accent">
-                      <RadioGroupItem value="card" id="card" />
-                      <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <CreditCard className="h-5 w-5" />
-                        Credit / Debit Card
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg cursor-pointer hover:bg-accent">
-                      <RadioGroupItem value="upi" id="upi" />
-                      <Label htmlFor="upi" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <Smartphone className="h-5 w-5" />
+                  <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                      <TabsTrigger value="card" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Card
+                      </TabsTrigger>
+                      <TabsTrigger value="upi" className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4" />
                         UPI
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg cursor-pointer hover:bg-accent">
-                      <RadioGroupItem value="netbanking" id="netbanking" />
-                      <Label htmlFor="netbanking" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <Building2 className="h-5 w-5" />
+                      </TabsTrigger>
+                      <TabsTrigger value="netbanking" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
                         Net Banking
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg cursor-pointer hover:bg-accent">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer flex-1">
-                        <Package className="h-5 w-5" />
-                        Cash on Delivery
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="card" className="space-y-4">
+                      <div>
+                        <Label htmlFor="cardNumber">Card Number</Label>
+                        <Input
+                          id="cardNumber"
+                          placeholder="1234 5678 9012 3456"
+                          value={formData.cardNumber}
+                          onChange={(e) => handleInputChange('cardNumber', e.target.value)}
+                          required={paymentMethod === 'card'}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="cardExpiry">Expiry Date</Label>
+                          <Input
+                            id="cardExpiry"
+                            placeholder="MM/YY"
+                            value={formData.cardExpiry}
+                            onChange={(e) => handleInputChange('cardExpiry', e.target.value)}
+                            required={paymentMethod === 'card'}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cardCvv">CVV</Label>
+                          <Input
+                            id="cardCvv"
+                            placeholder="123"
+                            type="password"
+                            maxLength={3}
+                            value={formData.cardCvv}
+                            onChange={(e) => handleInputChange('cardCvv', e.target.value)}
+                            required={paymentMethod === 'card'}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        We accept Visa, Mastercard, American Express, and Rupay
+                      </p>
+                    </TabsContent>
+
+                    <TabsContent value="upi" className="space-y-4">
+                      <div>
+                        <Label htmlFor="upiId">UPI ID</Label>
+                        <Input
+                          id="upiId"
+                          placeholder="yourname@upi"
+                          value={formData.upiId}
+                          onChange={(e) => handleInputChange('upiId', e.target.value)}
+                          required={paymentMethod === 'upi'}
+                        />
+                      </div>
+                      <div className="bg-muted p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-2">Supported UPI Apps</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs bg-background px-3 py-1 rounded-full">Google Pay</span>
+                          <span className="text-xs bg-background px-3 py-1 rounded-full">PhonePe</span>
+                          <span className="text-xs bg-background px-3 py-1 rounded-full">Paytm</span>
+                          <span className="text-xs bg-background px-3 py-1 rounded-full">BHIM</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="netbanking" className="space-y-4">
+                      <div>
+                        <Label htmlFor="netBankingBank">Select Your Bank</Label>
+                        <select
+                          id="netBankingBank"
+                          value={formData.netBankingBank}
+                          onChange={(e) => handleInputChange('netBankingBank', e.target.value)}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          required={paymentMethod === 'netbanking'}
+                        >
+                          <option value="">Choose a bank</option>
+                          <option value="sbi">State Bank of India</option>
+                          <option value="hdfc">HDFC Bank</option>
+                          <option value="icici">ICICI Bank</option>
+                          <option value="axis">Axis Bank</option>
+                          <option value="kotak">Kotak Mahindra Bank</option>
+                          <option value="pnb">Punjab National Bank</option>
+                          <option value="bob">Bank of Baroda</option>
+                        </select>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        You will be redirected to your bank's secure login page
+                      </p>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
-
-              {/* Payment Information */}
-              {paymentMethod === 'card' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      Card Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input
-                        id="cardNumber"
-                        placeholder="1234 5678 9012 3456"
-                        value={formData.cardNumber}
-                        onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="cardExpiry">Expiry Date</Label>
-                        <Input
-                          id="cardExpiry"
-                          placeholder="MM/YY"
-                          value={formData.cardExpiry}
-                          onChange={(e) => handleInputChange('cardExpiry', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cardCvv">CVV</Label>
-                        <Input
-                          id="cardCvv"
-                          placeholder="123"
-                          type="password"
-                          maxLength={3}
-                          value={formData.cardCvv}
-                          onChange={(e) => handleInputChange('cardCvv', e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {paymentMethod === 'upi' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Smartphone className="h-5 w-5" />
-                      UPI Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div>
-                      <Label htmlFor="upiId">UPI ID</Label>
-                      <Input
-                        id="upiId"
-                        placeholder="yourname@upi"
-                        value={formData.upiId}
-                        onChange={(e) => handleInputChange('upiId', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {paymentMethod === 'netbanking' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5" />
-                      Net Banking Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="bankName">Bank Name</Label>
-                      <Input
-                        id="bankName"
-                        placeholder="Select your bank"
-                        value={formData.bankName}
-                        onChange={(e) => handleInputChange('bankName', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="accountNumber">Account Number</Label>
-                      <Input
-                        id="accountNumber"
-                        placeholder="Enter account number"
-                        type="password"
-                        value={formData.accountNumber}
-                        onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {paymentMethod === 'cod' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      Cash on Delivery
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      Pay when you receive your order. Cash payment will be collected at the time of delivery.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
 
               <Button type="submit" className="w-full" size="lg">
                 Place Order - ₹{state.productPrice.toLocaleString('en-IN')}
