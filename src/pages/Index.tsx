@@ -2,16 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
 import { Link } from 'react-router-dom';
-import { 
-  TrendingDown, 
-  Bell, 
-  Shield, 
-  Zap, 
-  Target,
-  BarChart3,
-  ArrowRight,
-  CheckCircle2
-} from 'lucide-react';
+import { TrendingDown, Bell, Shield, Zap, Target, BarChart3, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function Index() {
   const features = [
@@ -27,8 +18,8 @@ export default function Index() {
     },
     {
       icon: <Target className="h-8 w-8" />,
-      title: 'Personalized Recommendations',
-      description: 'AI-powered suggestions based on your browsing history and preferences'
+      title: 'Personalized Watchlists',
+      description: 'Create custom watchlists and targets for the products you care about'
     },
     {
       icon: <BarChart3 className="h-8 w-8" />,
@@ -84,7 +75,7 @@ export default function Index() {
               Again
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Track prices, get instant alerts, and save money on your favorite products with intelligent price monitoring
+              Track prices, get instant alerts, and save money on your favorite products with historical tracking and watchlists
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
