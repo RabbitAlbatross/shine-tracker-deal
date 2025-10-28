@@ -1,4 +1,3 @@
 project_id = "vuwtvctirjclsvmaeljw"
 
-[functions.analyze-product]
-verify_jwt = false
+# Removed AI function configuration

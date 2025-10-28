@@ -1,7 +1,4 @@
--- Add INSERT policy for product_analysis table
-CREATE POLICY "Anyone can insert product analysis"
-ON product_analysis FOR INSERT
-WITH CHECK (true);
+-- Removed product_analysis policies (AI features removed)
 
 -- Fix product prices - reset to reasonable INR values
 UPDATE products SET current_price = 13279 WHERE name = 'Nike Air Max 270' AND current_price > 100000;

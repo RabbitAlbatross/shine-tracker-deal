@@ -20,24 +20,7 @@ CREATE POLICY "Anyone can view product stores"
 ON product_stores FOR SELECT
 USING (true);
 
--- Create product_analysis table for storing AI sentiment analysis
-CREATE TABLE IF NOT EXISTS product_analysis (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  sentiment_score DECIMAL(3, 2) NOT NULL CHECK (sentiment_score >= 0 AND sentiment_score <= 1),
-  recommendation TEXT NOT NULL,
-  analysis_summary TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  UNIQUE(product_id)
-);
-
--- Enable RLS on product_analysis
-ALTER TABLE product_analysis ENABLE ROW LEVEL SECURITY;
-
--- Create policy for reading product analysis (public)
-CREATE POLICY "Anyone can view product analysis"
-ON product_analysis FOR SELECT
-USING (true);
+-- Product analysis table removed (no AI features)
 
 -- Insert price history for products that don't have any
 INSERT INTO price_history (product_id, price, recorded_at)

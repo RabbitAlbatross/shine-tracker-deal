@@ -8,11 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, TrendingUp, ShoppingCart, Check, Plus, Store, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
+import { ArrowLeft, TrendingUp, ShoppingCart, Check, Plus, Store } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Product {
   id: string;
@@ -37,11 +35,7 @@ interface ProductStore {
   store_url: string;
 }
 
-interface ProductAnalysis {
-  sentiment_score: number;
-  recommendation: string;
-  analysis_summary: string;
-}
+// AI analysis removed
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -52,10 +46,10 @@ export default function ProductDetail() {
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [productStores, setProductStores] = useState<ProductStore[]>([]);
-  const [analysis, setAnalysis] = useState<ProductAnalysis | null>(null);
+  // AI analysis removed
   const [isTracked, setIsTracked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  // AI analysis removed
   const [targetPrice, setTargetPrice] = useState<number>(0);
   const [notifyOnDrop, setNotifyOnDrop] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,13 +63,23 @@ export default function ProductDetail() {
   const fetchProductData = async () => {
     try {
       // Fetch product details
-      const { data: productData, error: productError } = await supabase
+      const { data: productDataRaw, error: productError } = await supabase
         .from('products')
         .select('*')
         .eq('id', id)
         .single();
 
       if (productError) throw productError;
+      const productData: Product = {
+        id: productDataRaw.id,
+        name: productDataRaw.name ?? productDataRaw.title ?? 'Untitled',
+        description: productDataRaw.description ?? '',
+        category: productDataRaw.category ?? 'Uncategorized',
+        current_price: Number(productDataRaw.current_price ?? productDataRaw.price ?? 0),
+        image_url: productDataRaw.image_url ?? '',
+        source_url: productDataRaw.source_url ?? productDataRaw.asin ?? '',
+        currency: productDataRaw.currency ?? 'INR',
+      };
       setProduct(productData);
 
       // Fetch price history
@@ -109,20 +113,7 @@ export default function ProductDetail() {
       if (storesError) throw storesError;
       setProductStores(storesData || []);
 
-      // Fetch existing analysis
-      const { data: analysisData } = await supabase
-        .from('product_analysis')
-        .select('*')
-        .eq('product_id', id)
-        .single();
-
-      if (analysisData) {
-        setAnalysis({
-          sentiment_score: Number(analysisData.sentiment_score),
-          recommendation: analysisData.recommendation,
-          analysis_summary: analysisData.analysis_summary || '',
-        });
-      }
+      // AI analysis removed
 
       // Check if product is tracked
       if (user) {
@@ -218,54 +209,7 @@ export default function ProductDetail() {
     }
   };
 
-  const analyzeProduct = async () => {
-    if (!product || loadingAnalysis) return;
-    
-    setLoadingAnalysis(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-product', {
-        body: {
-          productName: product.name,
-          description: product.description,
-          currentPrice: product.current_price,
-          lowestPrice,
-          highestPrice,
-          priceHistory: chartData
-        }
-      });
-
-      if (error) throw error;
-
-      const analysisResult = {
-        sentiment_score: data.sentimentScore,
-        recommendation: data.recommendation,
-        analysis_summary: data.summary
-      };
-
-      setAnalysis(analysisResult);
-
-      // Save to database
-      await supabase.from('product_analysis').upsert({
-        product_id: id,
-        sentiment_score: data.sentimentScore,
-        recommendation: data.recommendation,
-        analysis_summary: data.summary
-      });
-
-      toast({
-        title: 'Analysis Complete',
-        description: 'AI has analyzed this product for you',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Analysis Failed',
-        description: error.message || 'Failed to analyze product',
-      });
-    } finally {
-      setLoadingAnalysis(false);
-    }
-  };
+  // AI analysis removed
 
   const chartData = priceHistory.map((item) => ({
     date: new Date(item.recorded_at).toLocaleDateString('en-IN'),
@@ -357,92 +301,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* AI Analysis Section */}
-            {analysis && (
-              <Card className="mb-6 border-2 bg-gradient-to-br from-primary/5 to-background">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <div className={`p-3 rounded-full ${
-                        analysis.sentiment_score >= 0.7 ? 'bg-green-100 dark:bg-green-900/30' : 
-                        analysis.sentiment_score >= 0.4 ? 'bg-yellow-100 dark:bg-yellow-900/30' : 
-                        'bg-red-100 dark:bg-red-900/30'
-                      }`}>
-                        {analysis.sentiment_score >= 0.7 ? (
-                          <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        ) : analysis.sentiment_score >= 0.4 ? (
-                          <AlertCircle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                        ) : (
-                          <ThumbsDown className="h-6 w-6 text-red-600 dark:text-red-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-bold">AI Product Analysis</h3>
-                        <Badge 
-                          className="text-base px-3 py-1"
-                          variant={
-                            analysis.sentiment_score >= 0.7 ? 'default' : 
-                            analysis.sentiment_score >= 0.4 ? 'secondary' : 
-                            'destructive'
-                          }
-                        >
-                          {(analysis.sentiment_score * 100).toFixed(0)}% Worth Buying
-                        </Badge>
-                      </div>
-                      
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all ${
-                              analysis.sentiment_score >= 0.7 ? 'bg-green-500' : 
-                              analysis.sentiment_score >= 0.4 ? 'bg-yellow-500' : 
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${analysis.sentiment_score * 100}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="bg-background/50 rounded-lg p-4 mb-3">
-                        <p className="text-sm font-semibold text-primary mb-1">Summary</p>
-                        <p className="text-base">{analysis.analysis_summary}</p>
-                      </div>
-                      
-                      <div className="bg-background/50 rounded-lg p-4">
-                        <p className="text-sm font-semibold text-primary mb-1">Detailed Recommendation</p>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {analysis.recommendation}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!analysis && (
-              <Button 
-                onClick={analyzeProduct} 
-                disabled={loadingAnalysis}
-                size="lg"
-                className="w-full mb-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-              >
-                {loadingAnalysis ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Analyzing with AI...
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-5 w-5 mr-2" />
-                    Get AI Analysis & Buying Recommendation
-                  </>
-                )}
-              </Button>
-            )}
+            {/* Price actions */}
 
             <div className="flex gap-4 mb-6">
               <Button

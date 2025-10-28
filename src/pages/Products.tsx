@@ -56,7 +56,17 @@ export default function Products() {
         .order('name');
 
       if (error) throw error;
-      setProducts(data || []);
+      const normalized = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name ?? row.title ?? 'Untitled',
+        description: row.description ?? '',
+        category: row.category ?? 'Uncategorized',
+        current_price: Number(row.current_price ?? row.price ?? 0),
+        image_url: row.image_url ?? '',
+        source_url: row.source_url ?? row.asin ?? '',
+        currency: row.currency ?? 'INR',
+      } as Product));
+      setProducts(normalized);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -88,7 +98,7 @@ export default function Products() {
     if (searchQuery) {
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (p.description || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
